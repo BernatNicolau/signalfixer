@@ -10,8 +10,7 @@ setup(
     author='Bernat Nicolau',
     author_email='bernatnicolaujorda@gmail.com',
     license='MIT',
-    package_dir={'': 'src'},
-    packages=find_packages(where='src'),
+    install_requires=['pandas'],
     extras_require={
         'dev': [
             'pytest',
