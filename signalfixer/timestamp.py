@@ -110,14 +110,13 @@ def get_freq_min(freq):
 
 
 def get_continuous_ts(signal: Union[pd.Series, pd.DataFrame]):
-    """Ensures continuous index
+    """Ensures continuous timestamp
 
     Args:
-        df (pd.DataFrame): _description_
-        times (pd.Series): _description_
+        signal (pd.Series or pd.DataFrame): Index must be pd.Timestamp
 
     Returns:
-        pd.Series: _description_
+        formatted signal
     """
     times = get_times(signal)
     df_times = pd.DataFrame(index=times)
