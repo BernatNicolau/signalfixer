@@ -1,87 +1,103 @@
 import pandas as pd
+from typing import Union, List
 
 
-def get_times(signal1: pd.Series, signal2: pd.Series, list_signals=None, return_extra=False):
+def get_times(signal: Union[pd.Series, pd.DataFrame, List[pd.Series], List[pd.DataFrame]], return_extra=False):
     """_summary_
 
     Args:
-        signal1 (pd.Series): _description_
-        signal2 (pd.Series): _description_
+        signal (Union[pd.Series, pd.DataFrame, List[pd.Series], List[pd.DataFrame]]): Signal or list of Signals. Signal can be pd.Series or pd.DataFrame.
+        return_extra (bool, optional): _description_. Defaults to False.
+
+    Returns:
+        _type_: _description_
     """
-    start_date = get_start_date(signal1, signal2, list_signals)
-    end_date = get_start_date(signal1, signal2, list_signals)
-    freq = get_freq(signal1, signal2)
+    start_date = get_start_date(signal)
+    end_date = get_start_date(signal)
+    freq = get_freq(signal)
     times = pd.date_range(start=start_date, end=end_date, freq=freq)
     if return_extra:
         return times, freq, start_date, end_date
     return times
 
 
-def get_start_date(signal1: pd.Series, signal2: pd.Series, list_signals=None):
+def get_start_date(signal: Union[pd.Series, pd.DataFrame, List[pd.Series], List[pd.DataFrame]]):
     """Return lowest starting date
 
     Args:
-        signal1 (pd.Series): _description_
-        signal2 (pd.Series): _description_
-        list_signals (_type_, optional): _description_. Defaults to None.
+        signal (pd.Series): _description_
 
     Returns:
         _type_: _description_
     """
 
-    if list_signals is None:
-        signal1 = sanitize_index(signal1)
-        signal2 = sanitize_index(signal2)
-        return min(signal1.index[0], signal2.index[0])
     out = None
-    for signal in list_signals:
+    if (isinstance(signal, pd.Series)) or (isinstance(signal, pd.DataFrame)):
         signal = sanitize_index(signal)
         if out is None:
             out = signal.index[0]
         else:
             if signal.index[0] < out:
                 out = signal.index[0]
+
+    for signal_ in signal:
+        signal_ = sanitize_index(signal_)
+        if out is None:
+            out = signal_.index[0]
+        else:
+            if signal_.index[0] < out:
+                out = signal_.index[0]
     return out
 
 
-def get_end_date(signal1: pd.Series, signal2: pd.Series, list_signals=None):
-    if list_signals is None:
-        signal1 = sanitize_index(signal1)
-        signal2 = sanitize_index(signal2)
-        return max(signal1.index[-1], signal2.index[-1])
+def get_end_date(signal: Union[pd.Series, pd.DataFrame, List[pd.Series], List[pd.DataFrame]]):
     out = None
-    for signal in list_signals:
+    if (isinstance(signal, pd.Series)) or (isinstance(signal, pd.DataFrame)):
         signal = sanitize_index(signal)
         if out is None:
             out = signal.index[-1]
         else:
             if signal.index[-1] > out:
                 out = signal.index[-1]
+    else:
+        for signal_ in signal:
+            signal_ = sanitize_index(signal_)
+            if out is None:
+                out = signal_.index[-1]
+            else:
+                if signal_.index[-1] > out:
+                    out = signal_.index[-1]
     return out
 
 
-def get_freq(signal1: pd.Series, signal2: pd.Series, list_signals=None):
-    if list_signals is None:
-        signal1 = sanitize_index(signal1)
-        signal2 = sanitize_index(signal2)
-        freq1 = pd.infer_freq(signal1)
-        freq2 = pd.infer_freq(signal1)
-        freq1_min = get_freq_min(freq1)
-        freq2_min = get_freq_min(freq2)
-        return freq1 if freq1_min < freq2_min else freq2
-    freq = None
-    for signal in list_signals:
+def get_freq(signal: Union[pd.Series, pd.DataFrame, List[pd.Series], List[pd.DataFrame]]):
+
+    out = None
+    freq_min_ref = None
+    if (isinstance(signal, pd.Series)) or (isinstance(signal, pd.DataFrame)):
         signal = sanitize_index(signal)
-        if freq is None:
-            freq = pd.infer_freq(signal)
-            freq_min = get_freq_min(freq)
+        freq = pd.infer_freq(signal)
+        freq_min = get_freq_min(freq)
+        if out is None:
+            out = freq
+            freq_min_ref = freq_min
         else:
-            freq_ = pd.infer_freq(signal)
-            freq_min_ = get_freq_min(freq)
-            if freq_min_ < freq_min:
-                freq = freq_
-                freq_min = freq_min_
-    return freq
+            if freq_min < freq_min_ref:
+                out = freq
+                freq_min_ref = freq_min
+    else:
+        for signal_ in signal:
+            signal_ = sanitize_index(signal_)
+            freq = pd.infer_freq(signal_)
+            freq_min = get_freq_min(freq)
+            if out is None:
+                out = freq
+                freq_min_ref = freq_min
+            else:
+                if freq_min < freq_min_ref:
+                    out = freq
+                    freq_min_ref = freq_min
+    return out
 
 
 def get_freq_min(freq):
@@ -93,17 +109,38 @@ def get_freq_min(freq):
     )
 
 
-def get_continuous_ts(df, times):
+def get_continuous_ts(signal: Union[pd.Series, pd.DataFrame]):
+    """Ensures continuous index
+
+    Args:
+        df (pd.DataFrame): _description_
+        times (pd.Series): _description_
+
+    Returns:
+        pd.Series: _description_
+    """
+    times = get_times(signal)
     df_times = pd.DataFrame(index=times)
-    df = df[~df.index.duplicated(keep='first')]
-    df = pd.concat([df_times, df], axis=1)
-    df = df.loc[df_times.index[0]:df_times.index[-1]]
+    signal = signal[~signal.index.duplicated(keep='first')]
+    signal = pd.concat([df_times, signal], axis=1)
+    signal = signal.loc[df_times.index[0]:df_times.index[-1]]
 
-    df.index = df.index.rename('TS')
-    return df
+    return signal
 
 
-def sanitize_index(signal: pd.Series):
+def sanitize_index(signal: Union[pd.Series, pd.DataFrame]):
+    """Removes NaN and sorts index
+
+    Args:
+        signal (pd.Series): Index must be pd.Timestamp
+
+    Raises:
+        ValueError: Signal did not contain any index
+        ValueError: Signal index are not pd.Timestamp
+
+    Returns:
+        pd.Series: Same input with sanitized index
+    """
     signal = signal.loc[~signal.index.isna()]
     if signal.empty:
         raise ValueError('Signal did not contain any index')
