@@ -108,5 +108,5 @@ def sanitize_index(signal: pd.Series):
     if signal.empty:
         raise ValueError('Signal did not contain any index')
     if not isinstance(signal.index[0], pd.Timestamp):
-        raise ValueError('Signal did not contain any index')
+        raise ValueError('Signal index are not pd.Timestamp')
     return signal.sort_index()

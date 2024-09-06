@@ -6,6 +6,7 @@ setup(
     description='Timestamp treatment, time-shift finder and more.',
     long_description=open('README.md').read(),
     long_description_content_type='text/markdown',
+    packages=find_packages(),
     url='https://github.com/BernatNicolau/signalfixer',
     author='Bernat Nicolau',
     author_email='bernatnicolaujorda@gmail.com',

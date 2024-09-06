@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-import timestamp
+from signalfixer import timestamp
 
 
 def time_lag_pair(signal_ref, signal_eval, max_lag=4, freq="1min"):
