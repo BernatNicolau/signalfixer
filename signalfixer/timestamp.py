@@ -1,5 +1,6 @@
 import pandas as pd
 from typing import Union, List
+import signalfixer.typing as ty
 
 
 def get_times(signal: Union[pd.Series, pd.DataFrame, List[pd.Series], List[pd.DataFrame]], return_extra=False):
@@ -12,8 +13,10 @@ def get_times(signal: Union[pd.Series, pd.DataFrame, List[pd.Series], List[pd.Da
     Returns:
         _type_: _description_
     """
+    ty.check_inputs(get_times, signal)
+
     start_date = get_start_date(signal)
-    end_date = get_start_date(signal)
+    end_date = get_end_date(signal)
     freq = get_freq(signal)
     times = pd.date_range(start=start_date, end=end_date, freq=freq)
     if return_extra:
@@ -31,6 +34,7 @@ def get_start_date(signal: Union[pd.Series, pd.DataFrame, List[pd.Series], List[
         _type_: _description_
     """
 
+    ty.check_inputs(get_start_date, signal)
     out = None
     if (isinstance(signal, pd.Series)) or (isinstance(signal, pd.DataFrame)):
         signal = sanitize_index(signal)
@@ -39,18 +43,19 @@ def get_start_date(signal: Union[pd.Series, pd.DataFrame, List[pd.Series], List[
         else:
             if signal.index[0] < out:
                 out = signal.index[0]
-
-    for signal_ in signal:
-        signal_ = sanitize_index(signal_)
-        if out is None:
-            out = signal_.index[0]
-        else:
-            if signal_.index[0] < out:
+    else:
+        for signal_ in signal:
+            signal_ = sanitize_index(signal_)
+            if out is None:
                 out = signal_.index[0]
+            else:
+                if signal_.index[0] < out:
+                    out = signal_.index[0]
     return out
 
 
 def get_end_date(signal: Union[pd.Series, pd.DataFrame, List[pd.Series], List[pd.DataFrame]]):
+    ty.check_inputs(get_end_date, signal)
     out = None
     if (isinstance(signal, pd.Series)) or (isinstance(signal, pd.DataFrame)):
         signal = sanitize_index(signal)
@@ -70,13 +75,30 @@ def get_end_date(signal: Union[pd.Series, pd.DataFrame, List[pd.Series], List[pd
     return out
 
 
-def get_freq(signal: Union[pd.Series, pd.DataFrame, List[pd.Series], List[pd.DataFrame]]):
+def infer_freq(index: pd.DatetimeIndex, window_size=10):
+    ty.check_inputs(infer_freq, index)
+    freq = pd.infer_freq(index)
+    if freq is not None:
+        return freq
+    num_points = len(index)
+    for i in range(0, num_points, window_size):
+        window = index[i:i + window_size]
+        if len(window) < window_size:
+            break
+        freq = pd.infer_freq(window)
 
+        if freq is not None:
+            return freq
+    return None
+
+
+def get_freq(signal: Union[pd.Series, pd.DataFrame, List[pd.Series], List[pd.DataFrame]]):
+    ty.check_inputs(get_freq, signal)
     out = None
     freq_min_ref = None
     if (isinstance(signal, pd.Series)) or (isinstance(signal, pd.DataFrame)):
         signal = sanitize_index(signal)
-        freq = pd.infer_freq(signal)
+        freq = infer_freq(signal.index)
         freq_min = get_freq_min(freq)
         if out is None:
             out = freq
@@ -88,7 +110,7 @@ def get_freq(signal: Union[pd.Series, pd.DataFrame, List[pd.Series], List[pd.Dat
     else:
         for signal_ in signal:
             signal_ = sanitize_index(signal_)
-            freq = pd.infer_freq(signal_)
+            freq = infer_freq(signal_.index)
             freq_min = get_freq_min(freq)
             if out is None:
                 out = freq
@@ -100,7 +122,8 @@ def get_freq(signal: Union[pd.Series, pd.DataFrame, List[pd.Series], List[pd.Dat
     return out
 
 
-def get_freq_min(freq):
+def get_freq_min(freq: str):
+    ty.check_inputs(get_freq_min, freq)
     return (
         pd.to_timedelta(
             pd.tseries.frequencies.to_offset(freq)
@@ -118,6 +141,7 @@ def get_continuous_ts(signal: Union[pd.Series, pd.DataFrame]):
     Returns:
         formatted signal
     """
+    ty.check_inputs(get_continuous_ts, signal)
     times = get_times(signal)
     df_times = pd.DataFrame(index=times)
     signal = signal[~signal.index.duplicated(keep='first')]
@@ -140,6 +164,7 @@ def sanitize_index(signal: Union[pd.Series, pd.DataFrame]):
     Returns:
         pd.Series: Same input with sanitized index
     """
+    ty.check_inputs(sanitize_index, signal)
     signal = signal.loc[~signal.index.isna()]
     if signal.empty:
         raise ValueError('Signal did not contain any index')
