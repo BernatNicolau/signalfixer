@@ -12,27 +12,38 @@ def check_inputs(func, *inputs):
     Raises:
         TypeError: If any input argument doesn't match its corresponding type hint.
     """
-    # Retrieve the type hints of the function
     hints = get_type_hints(func)
-
-    # Get the function's parameter names
     arg_names = func.__code__.co_varnames[:func.__code__.co_argcount]
-
-    # Combine positional arguments into a dictionary with argument names
     all_args = dict(zip(arg_names, inputs))
 
-    # Check each argument against its type hint
     for arg_name, arg_value in all_args.items():
-        if arg_name in hints:
-            expected_type = hints[arg_name]
-            # Handle Union types
-            if get_origin(expected_type) is Union:
-                possible_types = get_args(expected_type)
-                if not any(isinstance(arg_value, t) for t in possible_types):
-                    raise TypeError(f"Argument '{arg_name}' must be one of {
-                                    possible_types}. Got {type(arg_value)} instead.")
-            else:
-                # Handle single types
-                if not isinstance(arg_value, expected_type):
-                    raise TypeError(f"Argument '{arg_name}' must be of type {
-                                    expected_type}. Got {type(arg_value)} instead.")
+        if arg_name not in hints:
+            continue
+
+        expected_type = hints[arg_name]
+        origin = get_origin(expected_type)
+        args = get_args(expected_type)
+
+        if origin is Union:
+            if not any(_check_type(arg_value, t) for t in args):
+                raise TypeError(f"Argument '{arg_name}' must be one of {args}. Got {type(arg_value)} instead.")
+        else:
+            if not _check_type(arg_value, expected_type):
+                raise TypeError(f"Argument '{arg_name}' must be of type {expected_type}. Got {type(arg_value)} instead.")
+
+def _check_type(value, expected_type):
+    origin = get_origin(expected_type)
+    args = get_args(expected_type)
+
+    if origin is list:
+        return isinstance(value, list) and all(_check_type(v, args[0]) for v in value)
+    elif origin is dict:
+        return isinstance(value, dict) and all(
+            _check_type(k, args[0]) and _check_type(v, args[1]) for k, v in value.items()
+        )
+    elif origin is Union:
+        return any(_check_type(value, t) for t in args)
+    elif origin is None:
+        return isinstance(value, expected_type)
+    else:
+        return isinstance(value, origin)

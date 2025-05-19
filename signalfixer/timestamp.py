@@ -1,9 +1,13 @@
 import pandas as pd
 from typing import Union, List
 import signalfixer.typing as ty
+import copy
 
 
-def get_times(signal: Union[pd.Series, pd.DataFrame, List[pd.Series], List[pd.DataFrame]], return_extra=False):
+def get_times(
+    signal: Union[pd.Series, pd.DataFrame, List[pd.Series], List[pd.DataFrame]],
+    return_extra=False,
+):
     """_summary_
 
     Args:
@@ -24,7 +28,9 @@ def get_times(signal: Union[pd.Series, pd.DataFrame, List[pd.Series], List[pd.Da
     return times
 
 
-def get_start_date(signal: Union[pd.Series, pd.DataFrame, List[pd.Series], List[pd.DataFrame]]):
+def get_start_date(
+    signal: Union[pd.Series, pd.DataFrame, List[pd.Series], List[pd.DataFrame]],
+):
     """Return lowest starting date
 
     Args:
@@ -54,7 +60,9 @@ def get_start_date(signal: Union[pd.Series, pd.DataFrame, List[pd.Series], List[
     return out
 
 
-def get_end_date(signal: Union[pd.Series, pd.DataFrame, List[pd.Series], List[pd.DataFrame]]):
+def get_end_date(
+    signal: Union[pd.Series, pd.DataFrame, List[pd.Series], List[pd.DataFrame]],
+):
     ty.check_inputs(get_end_date, signal)
     out = None
     if (isinstance(signal, pd.Series)) or (isinstance(signal, pd.DataFrame)):
@@ -77,22 +85,24 @@ def get_end_date(signal: Union[pd.Series, pd.DataFrame, List[pd.Series], List[pd
 
 def infer_freq(index: pd.DatetimeIndex, window_size=10):
     ty.check_inputs(infer_freq, index)
-    freq = pd.infer_freq(index)
+    freq = pd.infer_freq(pd.DatetimeIndex(index))
     if freq is not None:
         return freq
     num_points = len(index)
     for i in range(0, num_points, window_size):
-        window = index[i:i + window_size]
+        window = index[i : i + window_size]
         if len(window) < window_size:
             break
-        freq = pd.infer_freq(window)
+        freq = pd.infer_freq(pd.DatetimeIndex(window))
 
         if freq is not None:
             return freq
     return None
 
 
-def get_freq(signal: Union[pd.Series, pd.DataFrame, List[pd.Series], List[pd.DataFrame]]):
+def get_freq(
+    signal: Union[pd.Series, pd.DataFrame, List[pd.Series], List[pd.DataFrame]],
+):
     ty.check_inputs(get_freq, signal)
     out = None
     freq_min_ref = None
@@ -124,12 +134,7 @@ def get_freq(signal: Union[pd.Series, pd.DataFrame, List[pd.Series], List[pd.Dat
 
 def get_freq_min(freq: str):
     ty.check_inputs(get_freq_min, freq)
-    return (
-        pd.to_timedelta(
-            pd.tseries.frequencies.to_offset(freq)
-        ).total_seconds()
-        / 60
-    )
+    return pd.to_timedelta(pd.tseries.frequencies.to_offset(freq)).total_seconds() / 60
 
 
 def get_continuous_ts(signal: Union[pd.Series, pd.DataFrame]):
@@ -144,11 +149,26 @@ def get_continuous_ts(signal: Union[pd.Series, pd.DataFrame]):
     ty.check_inputs(get_continuous_ts, signal)
     times = get_times(signal)
     df_times = pd.DataFrame(index=times)
-    signal = signal[~signal.index.duplicated(keep='first')]
+    signal = signal[~signal.index.duplicated(keep="first")]
     signal = pd.concat([df_times, signal], axis=1)
-    signal = signal.loc[df_times.index[0]:df_times.index[-1]]
+    signal = signal.loc[df_times.index[0] : df_times.index[-1]]
 
     return signal
+
+
+def concat_signals(
+    signals: Union[pd.Series, pd.DataFrame, List[pd.Series], List[pd.DataFrame]],
+):
+
+    ty.check_inputs(concat_signals, signals)
+    times = get_times(signals)
+    df_signals = pd.DataFrame(index=times)
+    for signal in signals:
+        signal = signal[~signal.index.duplicated(keep="first")]
+        df_signals = pd.concat([df_signals, signal], axis=1)
+    df_signals = df_signals.loc[df_signals.index[0] : df_signals.index[-1]]
+
+    return df_signals
 
 
 def sanitize_index(signal: Union[pd.Series, pd.DataFrame]):
@@ -167,7 +187,7 @@ def sanitize_index(signal: Union[pd.Series, pd.DataFrame]):
     ty.check_inputs(sanitize_index, signal)
     signal = signal.loc[~signal.index.isna()]
     if signal.empty:
-        raise ValueError('Signal did not contain any index')
+        raise ValueError("Signal did not contain any index")
     if not isinstance(signal.index[0], pd.Timestamp):
-        raise ValueError('Signal index are not pd.Timestamp')
+        raise ValueError("Signal index are not pd.Timestamp")
     return signal.sort_index()
