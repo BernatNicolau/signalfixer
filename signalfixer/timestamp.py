@@ -1,10 +1,15 @@
 import pandas as pd
-from typing import Union, List
+from typing import Union, List, Tuple
 import signalfixer.typing as ty
 
 
 def get_times(
-    signal: Union[pd.Series, pd.DataFrame, List[pd.Series], List[pd.DataFrame]],
+    signal: Union[
+        pd.Series,
+        pd.DataFrame,
+        List[Union[pd.Series, pd.DataFrame]],
+        Tuple[Union[pd.Series, pd.DataFrame]],
+    ],
     return_extra=False,
 ):
     """_summary_
@@ -28,7 +33,12 @@ def get_times(
 
 
 def get_start_date(
-    signal: Union[pd.Series, pd.DataFrame, List[pd.Series], List[pd.DataFrame]],
+    signal: Union[
+        pd.Series,
+        pd.DataFrame,
+        List[Union[pd.Series, pd.DataFrame]],
+        Tuple[Union[pd.Series, pd.DataFrame]],
+    ],
 ):
     """Return lowest starting date
 
@@ -60,7 +70,12 @@ def get_start_date(
 
 
 def get_end_date(
-    signal: Union[pd.Series, pd.DataFrame, List[pd.Series], List[pd.DataFrame]],
+    signal: Union[
+        pd.Series,
+        pd.DataFrame,
+        List[Union[pd.Series, pd.DataFrame]],
+        Tuple[Union[pd.Series, pd.DataFrame]],
+    ],
 ):
     ty.check_inputs(get_end_date, signal)
     out = None
@@ -100,7 +115,12 @@ def infer_freq(index: pd.DatetimeIndex, window_size=10):
 
 
 def get_freq(
-    signal: Union[pd.Series, pd.DataFrame, List[pd.Series], List[pd.DataFrame]],
+    signal: Union[
+        pd.Series,
+        pd.DataFrame,
+        List[Union[pd.Series, pd.DataFrame]],
+        Tuple[Union[pd.Series, pd.DataFrame]],
+    ],
 ):
     ty.check_inputs(get_freq, signal)
     out = None
@@ -136,7 +156,14 @@ def get_freq_min(freq: str):
     return pd.to_timedelta(pd.tseries.frequencies.to_offset(freq)).total_seconds() / 60
 
 
-def get_continuous_ts(signal: Union[pd.Series, pd.DataFrame]):
+def get_continuous_ts(
+    signal: Union[
+        pd.Series,
+        pd.DataFrame,
+        List[Union[pd.Series, pd.DataFrame]],
+        Tuple[Union[pd.Series, pd.DataFrame]],
+    ],
+):
     """Ensures continuous timestamp
 
     Args:
@@ -156,7 +183,10 @@ def get_continuous_ts(signal: Union[pd.Series, pd.DataFrame]):
 
 
 def concat_signals(
-    signals: Union[pd.Series, pd.DataFrame, List[pd.Series], List[pd.DataFrame]],
+    signals: Union[
+        List[Union[pd.Series, pd.DataFrame]],
+        Tuple[Union[pd.Series, pd.DataFrame]],
+    ],
 ):
 
     ty.check_inputs(concat_signals, signals)
@@ -170,7 +200,14 @@ def concat_signals(
     return df_signals
 
 
-def sanitize_index(signal: Union[pd.Series, pd.DataFrame]):
+def sanitize_index(
+    signal: Union[
+        pd.Series,
+        pd.DataFrame,
+        List[Union[pd.Series, pd.DataFrame]],
+        Tuple[Union[pd.Series, pd.DataFrame]],
+    ],
+):
     """Removes NaN and sorts index
 
     Args:

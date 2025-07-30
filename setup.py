@@ -11,7 +11,7 @@ setup(
     author="Bernat Nicolau",
     author_email="bernatnicolaujorda@gmail.com",
     license="MIT",
-    install_requires=["pandas"],
+    install_requires=["pandas", "matplotlib"],
     extras_require={
         "dev": [
             "pytest",
@@ -24,5 +24,5 @@ setup(
         "License :: OSI Approved :: MIT License",
         "Topic :: Software Development :: Libraries :: Python Modules",
     ],
-    python_requires=">=3.7",
+    python_requires=">=3.13",
 )

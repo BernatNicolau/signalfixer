@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-from signalfixer import timestamp
+import signalfixer.timestamp as ts
 
 
 def time_lag_pair(signal_ref, signal_eval, max_lag=4, freq="1min"):
@@ -34,19 +34,18 @@ def time_lag_pair(signal_ref, signal_eval, max_lag=4, freq="1min"):
         insufficient overlapping data for a correlation.
     """
 
-    times, freq, _, _ = timestamp.get_times(
-        signal_ref, signal_eval, return_extra=True)
+    times, freq, _, _ = ts.get_times(signal_ref, signal_eval, return_extra=True)
 
     # interal parameters of algorithm
     df = pd.concat([signal_ref, signal_eval], axis=1)
-    df = timestamp.get_continuous_ts(df, times)
+    df = ts.get_continuous_ts(df, times)
     xmax = df[df.columns[0]].quantile(0.995)
     ymax = df[df.columns[1]].quantile(0.995)
     slope = ymax / xmax
     tol = 8
     rangex = 4
 
-    freq_min = timestamp.get_freq_min(freq)
+    freq_min = ts.get_freq_min(freq)
     max_lag = int(max_lag * 60 / freq_min)
 
     df = df.resample(freq).mean().interpolate(method="polynomial", order=2)
@@ -111,13 +110,14 @@ def shift_hourly_min(df, lag, freq_min=1, initial_freq_min=15):
     initial_freq = get_freq_str(initial_freq_min)
 
     resampled_data = (
-        df.resample(freq).mean().fillna(
-            method="ffill").fillna(method="bfill")
+        df.resample(freq).mean().fillna(method="ffill").fillna(method="bfill")
     )
     shifted_data = resampled_data.shift(int(shifts))
     shifted_data = (
-        shifted_data.resample(initial_freq).mean().fillna(
-            method="ffill").fillna(method="bfill")
+        shifted_data.resample(initial_freq)
+        .mean()
+        .fillna(method="ffill")
+        .fillna(method="bfill")
     )
 
     return shifted_data
@@ -126,12 +126,12 @@ def shift_hourly_min(df, lag, freq_min=1, initial_freq_min=15):
 def get_freq_str(freq_min):
 
     if freq_min < 60:
-        return f'{freq_min}T'
+        return f"{freq_min}T"
     elif freq_min == 60:
-        return 'H'
+        return "H"
     elif freq_min % 60 == 0:
-        return f'{freq_min // 60}H'
+        return f"{freq_min // 60}H"
     elif freq_min % (24 * 60) == 0:
-        return f'{freq_min // (24 * 60)}D'
+        return f"{freq_min // (24 * 60)}D"
     else:
-        return f'{freq_min}T'
+        return f"{freq_min}T"
