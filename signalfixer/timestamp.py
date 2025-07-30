@@ -1,7 +1,6 @@
 import pandas as pd
 from typing import Union, List
 import signalfixer.typing as ty
-import copy
 
 
 def get_times(

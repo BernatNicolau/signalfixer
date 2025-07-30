@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="signalfixer",
-    version="0.1.3",
+    version="0.1.5",
     description="Timestamp treatment, time-shift finder and more.",
     long_description=open("README.md").read(),
     long_description_content_type="text/markdown",
